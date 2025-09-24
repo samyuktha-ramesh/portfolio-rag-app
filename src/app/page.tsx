@@ -23,38 +23,38 @@ export default function Home() {
     }
   };
 
-  // Auto-scroll to the latest message
+  // Auto-scroll to the top when a new message is added
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollTo({ top: endRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex min-h-screen flex-col bg-gray-50 px-4">
+    <main className="flex min-h-screen flex-col px-4">
       {!hasMessages && (
-        <h1 className="text-4xl font-bold mb-12 mt-12 text-center text-gray-800">
-          Welcome to Portfolio Chat
+        <h1 className="text-4xl font-bold mb-12 mt-12 text-center">
+          Your portfolio insights, unlocked.
         </h1>
       )}
 
       {/* Messages */}
-      <div
-        className={`flex-1 w-full max-w-lg mx-auto overflow-y-auto space-y-2 ${
-          hasMessages ? "pb-24" : ""
-        }`}
-      >
-        {messages.map((msg, i) => (
-          <div key={i} className="rounded-md bg-white p-3 shadow text-gray-800">
-            {msg}
-          </div>
-        ))}
-        <div ref={endRef} />
-      </div>
+      {hasMessages && (
+        <div
+          className={`w-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24`}
+        >
+          {messages.map((msg, i) => (
+            <div key={i} className="rounded-md bg-white p-3 shadow">
+              {msg}
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+      )}
 
       {/* Input (sticky only when there are messages) */}
       <div
-        className={`w-full max-w-lg mx-auto flex items-center gap-2 bg-gray-50 py-4 ${
+        className={`w-full max-w-lg mx-auto flex items-center gap-2 py-4 ${
           hasMessages ? "sticky bottom-0" : "mb-12"
         }`}
       >
