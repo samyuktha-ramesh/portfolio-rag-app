@@ -1,39 +1,106 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+type Message = { id: string; isUser: boolean; text: string };
 
 export default function Home() {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const [waiting, setWaiting] = useState(false); // disable input while waiting for response
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const sessionId = crypto.randomUUID(); // Unique session ID for each chat session
+  const sourceRef = useRef<EventSource | null>(null);
 
   const sendMessage = () => {
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, input]); 
+    const q = input.trim();
+    if (!q) return;
+
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), isUser: true, text: q },
+    ]);
     setInput("");
+    setWaiting(true);
+    scrollUp();
+    sourceRef.current?.close();
+
+    const params = new URLSearchParams({
+      query: q,
+      session_id: String(sessionId),
+    });
+    const source = new EventSource(`/api/query?${params.toString()}`);
+    sourceRef.current = source;
+
+    const botId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: botId, isUser: false, text: "" },
+    ]);
+
+    source.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const chunk = data?.content ?? "";
+
+        if (!chunk) return;
+
+        setMessages((prev) => {
+          const next = [...prev];
+          const i = next.findIndex((m) => m.id === botId);
+          if (i == -1) return prev;
+          next[i] = { ...next[i], text: next[i].text + chunk };
+          return next;
+        });
+
+      } catch (error) {
+        console.error("Error parsing event data:", error);
+      }
+    };
+
+    const endSource = () => {
+      setWaiting(false);
+      source.close();
+      if (sourceRef.current === source) {
+        sourceRef.current = null;
+      }
+    };
+
+    source.addEventListener("end", () => {
+      endSource();
+    });
+
+    source.onerror = () => {
+      endSource();
+    };
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (waiting) return; // Prevent sending new messages while waiting
     if (e.key === "Enter") {
       e.preventDefault();
       sendMessage();
     }
   };
 
-  // Auto-scroll to the top when a new message is added
-  useEffect(() => {
-    endRef.current?.scrollTo({ top: endRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  const scrollUp = () => {
+    if (containerRef.current) {
+      const el = containerRef.current.lastElementChild as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
 
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex min-h-screen flex-col px-4">
+    <main>
       {!hasMessages && (
-        <h1 className="text-4xl font-bold mb-12 mt-12 text-center">
+        <h1 className="text-4xl font-bold mb-12 mt-60 text-center">
           Your portfolio insights, unlocked.
         </h1>
       )}
@@ -41,33 +108,44 @@ export default function Home() {
       {/* Messages */}
       {hasMessages && (
         <div
-          className={`w-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24`}
+          className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
+          ref={containerRef}
         >
-          {messages.map((msg, i) => (
-            <div key={i} className="rounded-md bg-white p-3 shadow">
+          {messages.map(({ id, isUser, text: msg }) => (
+            <div
+              key={id}
+              className={`rounded-lg px-3 py-2 w-fit ${isUser ? "bg-accent ml-auto" : "mr-auto"}`}
+            >
               {msg}
             </div>
           ))}
-          <div ref={endRef} />
         </div>
       )}
 
       {/* Input (sticky only when there are messages) */}
       <div
-        className={`w-full max-w-lg mx-auto flex items-center gap-2 py-4 ${
-          hasMessages ? "sticky bottom-0" : "mb-12"
-        }`}
+        className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
       >
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask me anything..."
-          className="flex-1 bg-white"
-        />
-        <Button onClick={sendMessage} aria-label="Send">
-          <PaperAirplaneIcon className="h-5 w-5 rotate-315 text-white" />
-        </Button>
+        <div className={"mx-auto max-w-lg flex items-center gap-2 py-2"}>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask me anything..."
+            className="flex-1 bg-white"
+          />
+          <Button
+            onClick={sendMessage}
+            aria-label="Send"
+            disabled={waiting || !input.trim()}
+          >
+            <PaperAirplaneIcon className="h-5 w-5 rotate-315 text-white" />
+          </Button>
+        </div>
+        <div className="text-xs text-gray-500 text-center mb-4">
+          Disclaimer: This chat provides general insights and does not
+          constitute financial advice.
+        </div>
       </div>
     </main>
   );
