@@ -1,5 +1,8 @@
+from datetime import datetime
 import json
 from collections import defaultdict
+import os
+from pathlib import Path
 
 from flask import Flask, Response, request, stream_with_context
 from hydra import compose, initialize
@@ -9,9 +12,17 @@ app = Flask(__name__)
 
 chat_sessions = defaultdict(lambda: ChatSession(cfg))
 
+now = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
+working_dir = Path("outputs") / now
+working_dir.mkdir(parents=True, exist_ok=True)
+working_dir_absolute = working_dir.resolve().as_posix()
+
+portfolio_rag_dir = Path(__file__).resolve().parent.parent.parent.parent / "PortfolioRAG" 
+os.chdir(portfolio_rag_dir)
+
 cfg_path = "../../../PortfolioRAG/src/portfolio_rag/configs"
 with initialize(version_base="1.3", config_path=cfg_path, job_name="app"):
-    cfg = compose(config_name="config", overrides=[])
+    cfg = compose(config_name="config", overrides=[f"+working_dir={working_dir_absolute}"])
 
 
 @app.route("/api/query", methods=["GET"])
@@ -39,8 +50,9 @@ def query():
     return Response(
         stream_with_context(query_agent()),
         mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
+        headers={            
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         }

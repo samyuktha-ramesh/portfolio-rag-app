@@ -4,15 +4,39 @@ import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 
-type Message = { id: string; isUser: boolean; text: string };
+type Message = { id: string; isUser: boolean; parts: React.ReactNode[]; };
+
+
+function styleMessage(event_type: string, chunk: string) {
+  switch (event_type) {
+    case "on_reasoning":
+      return <span className="font-bold italic">Reasoning...<br/></span>;
+    case "on_tool_request":
+      return "\n";
+    case "on_text":
+      return chunk;
+    case "on_tool_start":
+      return (
+        <span className="font-bold">Invoking tool <span className="italic whitespace-pre-wrap">{chunk}</span>...<br/></span>
+      );
+    case "on_tool_args":
+      return <span className="font-bold">Agent Query: <span className="italic whitespace-pre-wrap">{chunk}</span><br/></span>;
+    case "on_tool_output":
+      return <span><span className="font-bold">Tool response: </span> <span className="italic whitespace-pre-wrap">{chunk}</span><br/></span>;
+    default:
+      return chunk;
+  }
+}
+
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [waiting, setWaiting] = useState(false); // disable input while waiting for response
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const sessionId = crypto.randomUUID(); // Unique session ID for each chat session
+  const sessionId = uuidv4(); // Unique session ID for each chat session
   const sourceRef = useRef<EventSource | null>(null);
 
   const sendMessage = () => {
@@ -21,7 +45,7 @@ export default function Home() {
 
     setMessages((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), isUser: true, text: q },
+      { id: uuidv4(), isUser: true, parts: [q] },
     ]);
     setInput("");
     setWaiting(true);
@@ -35,10 +59,10 @@ export default function Home() {
     const source = new EventSource(`/api/query?${params.toString()}`);
     sourceRef.current = source;
 
-    const botId = crypto.randomUUID();
+    const botId = uuidv4();
     setMessages((prev) => [
       ...prev,
-      { id: botId, isUser: false, text: "" },
+      { id: botId, isUser: false, parts: [] },
     ]);
 
     source.onmessage = (event) => {
@@ -46,13 +70,11 @@ export default function Home() {
         const data = JSON.parse(event.data);
         const chunk = data?.content ?? "";
 
-        if (!chunk) return;
-
         setMessages((prev) => {
           const next = [...prev];
           const i = next.findIndex((m) => m.id === botId);
           if (i == -1) return prev;
-          next[i] = { ...next[i], text: next[i].text + chunk };
+          next[i] = { ...next[i], parts: [...next[i].parts, styleMessage(data.type, chunk)] };
           return next;
         });
 
@@ -111,12 +133,14 @@ export default function Home() {
           className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
           ref={containerRef}
         >
-          {messages.map(({ id, isUser, text: msg }) => (
+          {messages.map(({ id, isUser, parts: msg }) => (
             <div
               key={id}
               className={`rounded-lg px-3 py-2 w-fit ${isUser ? "bg-accent ml-auto" : "mr-auto"}`}
             >
-              {msg}
+              <div className="whitespace-pre-wrap">{
+                msg.map((p, i) => <span key={i}>{p}</span>)
+              }</div>
             </div>
           ))}
         </div>
