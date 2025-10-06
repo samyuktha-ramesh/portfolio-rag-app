@@ -5,39 +5,25 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
-
-type Message = { id: string; isUser: boolean; parts: React.ReactNode[]; };
-
-
-function styleMessage(event_type: string, chunk: string) {
-  switch (event_type) {
-    case "on_reasoning":
-      return <span className="font-bold italic">Reasoning...<br/></span>;
-    case "on_tool_request":
-      return "\n";
-    case "on_text":
-      return chunk;
-    case "on_tool_start":
-      return (
-        <span className="font-bold">Invoking tool <span className="italic whitespace-pre-wrap">{chunk}</span>...<br/></span>
-      );
-    case "on_tool_args":
-      return <span className="font-bold">Agent Query: <span className="italic whitespace-pre-wrap">{chunk}</span><br/></span>;
-    case "on_tool_output":
-      return <span><span className="font-bold">Tool response: </span> <span className="italic whitespace-pre-wrap">{chunk}</span><br/></span>;
-    default:
-      return chunk;
-  }
-}
-
+import { ChatSegment, updateSegment, mapTypeToKind, Segment } from "@/components/ui/chat_segment";
+import { BounceLoader } from "react-spinners";
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Segment[]>([]);
   const [input, setInput] = useState("");
   const [waiting, setWaiting] = useState(false); // disable input while waiting for response
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sessionId = uuidv4(); // Unique session ID for each chat session
   const sourceRef = useRef<EventSource | null>(null);
+
+  const currentBotIdRef = useRef<string | null>(null);
+
+  function pushBotMessage(type: string, content: string) {
+    const id = uuidv4();
+    const segment = { id, kind: mapTypeToKind(type), content, input: "", output: "" };
+    setMessages((prev) => [...prev, segment]);
+    currentBotIdRef.current = id;
+  }
 
   const sendMessage = () => {
     const q = input.trim();
@@ -45,7 +31,7 @@ export default function Home() {
 
     setMessages((prev) => [
       ...prev,
-      { id: uuidv4(), isUser: true, parts: [q] },
+      { id: uuidv4(), kind: "user", content: q, input: "", output: "" },
     ]);
     setInput("");
     setWaiting(true);
@@ -59,11 +45,7 @@ export default function Home() {
     const source = new EventSource(`/api/query?${params.toString()}`);
     sourceRef.current = source;
 
-    const botId = uuidv4();
-    setMessages((prev) => [
-      ...prev,
-      { id: botId, isUser: false, parts: [] },
-    ]);
+    pushBotMessage("bot", "");    
 
     source.onmessage = (event) => {
       try {
@@ -72,9 +54,22 @@ export default function Home() {
 
         setMessages((prev) => {
           const next = [...prev];
-          const i = next.findIndex((m) => m.id === botId);
+          const i = next.findIndex((m) => m.id === currentBotIdRef.current);
           if (i == -1) return prev;
-          next[i] = { ...next[i], parts: [...next[i].parts, styleMessage(data.type, chunk)] };
+
+          const type = data?.type ?? "bot";
+          const updatedSegment = updateSegment(type, next[i], chunk);
+          if (!updatedSegment) {
+            const reasoning_message = [
+              "Reasoning...",
+              "Thinking...",
+              "Pondering...",
+            ][Math.floor(Math.random() * 3)];
+            pushBotMessage(type, type === "on_reasoning" ? reasoning_message : chunk);
+          }
+          else {
+            next[i] = updatedSegment;
+          }
           return next;
         });
 
@@ -133,15 +128,22 @@ export default function Home() {
           className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
           ref={containerRef}
         >
-          {messages.map(({ id, isUser, parts: msg }) => (
-            <div
-              key={id}
-              className={`rounded-lg px-3 py-2 w-fit ${isUser ? "bg-accent ml-auto" : "mr-auto"}`}
-            >
-              <div className="whitespace-pre-wrap">{
-                msg.map((p, i) => <span key={i}>{p}</span>)
-              }</div>
-            </div>
+          {messages.map((segment, i) => (
+            <ChatSegment key={segment.id} segment={segment}>
+              {i === messages.length - 1 && (
+                <BounceLoader
+                  size={15}
+                  loading={waiting}
+                  color="#888"
+                  cssOverride={{
+                    display: "inline-block",
+                    marginLeft: "8px",
+                    verticalAlign: "middle",
+                    marginBottom: "3px",
+                  }}
+                />
+              )}
+            </ChatSegment>
           ))}
         </div>
       )}
