@@ -47,3 +47,6 @@ __pycache__/
 # virtual environment
 venv/
 .venv/
+
+# hydra
+outputs/
