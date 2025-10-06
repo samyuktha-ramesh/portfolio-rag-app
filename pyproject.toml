@@ -11,6 +11,7 @@ requires-python = ">=3.13"
 dependencies = [
     "flask>=3.1.2",
     "hydra-core>=1.3.2",
+    "portfolio-rag",
 ]
 
 [dependency-groups]
@@ -32,3 +33,6 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]  # basics: style, flakes, isort, pyupgrade, bugbear
 ignore = ["E501"]                    # let the formatter handle wrapping
+
+[tool.uv.sources]
+portfolio-rag = { git = "https://github.com/samyuktha-ramesh/pwc-porfolio-rag.git", rev = "main" }
