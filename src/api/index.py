@@ -5,11 +5,12 @@ from queue import Empty, Queue
 from uuid import uuid4
 
 from flask import Flask, Response, request, stream_with_context
-
-# from hydra import compose, initialize
+from flask_cors import CORS
 from portfolio_rag.runtime.session import ChatSession
 
 app = Flask(__name__)
+CORS(app)
+
 SENTINEL = object()
 
 chat_sessions = {}
@@ -116,3 +117,7 @@ def end_session():
         return Response(f"Session {session_id} ended", status=200)
     else:
         return Response(f"Session {session_id} not found", status=404)
+
+if __name__ == "__main__":
+    app.run()
+    
