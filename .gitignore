@@ -54,3 +54,6 @@ venv/
 
 # hydra
 outputs/
+
+# cache files
+.*cache/
