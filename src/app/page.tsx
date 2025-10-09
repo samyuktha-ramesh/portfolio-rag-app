@@ -1,7 +1,7 @@
 "use client";
 
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
@@ -13,7 +13,6 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [waiting, setWaiting] = useState(false); // disable input while waiting for response
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const sessionId = uuidv4(); // Unique session ID for each chat session
   const sourceRef = useRef<EventSource | null>(null);
 
   const currentBotIdRef = useRef<string | null>(null);
@@ -24,6 +23,37 @@ export default function Home() {
     setMessages((prev) => [...prev, segment]);
     currentBotIdRef.current = id;
   }
+
+  async function startSession() {
+    const res = await fetch("/api/start_session", { method: "POST" });
+    const data = await res.json();
+    
+    return data.session_id;
+  }
+
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // Initialize sessionId on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function initSession() {
+      if (!sessionId) {
+        const id = await startSession();
+        if (isMounted) setSessionId(id);
+      }
+    }
+    initSession();
+
+    window.addEventListener("beforeunload", () => {
+      if (sessionId) 
+        navigator.sendBeacon(`/api/end_session?session_id=${sessionId}`);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
 
   const sendMessage = () => {
     const q = input.trim();
