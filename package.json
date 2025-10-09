@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "flask-dev": "uv run -m flask --app src/api/index run -p 5328",
+    "flask-dev": "python -m flask --app src/api/index run -p 5328",
     "next-dev": "next dev --turbopack",
     "dev": "concurrently \"npm run flask-dev\" \"npm run next-dev\"",
     "build": "next build --turbopack",
