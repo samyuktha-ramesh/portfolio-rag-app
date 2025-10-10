@@ -44,7 +44,7 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
     const [open, setOpen] = useState(false);
     switch (segment.kind) {
         case "user":
-            return <div className="prose px-3 py-2 w-fit bg-accent ml-auto"><span>{children}</span>{segment.content}</div>;
+            return <div className="prose px-3 py-2 w-fit bg-accent ml-auto rounded-sm"><span>{children}</span>{segment.content}</div>;
         case "bot_tool":
             let tool_message = segment.content;
             switch (tool_message) {

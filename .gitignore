@@ -10,10 +10,6 @@
 !.yarn/releases
 !.yarn/versions
 
-# data
-data/**/**
-!data/.gitkeep
-
 # testing
 /coverage
 
