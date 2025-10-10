@@ -25,15 +25,19 @@ def start_session():
     chat_sessions[session_id] = ChatSession(session_id=session_id)
     return {"session_id": session_id}
 
+from flask import Response, request, stream_with_context
+import threading, time, json
+from queue import Queue, Empty
+
+SENTINEL = object()
 
 @app.route("/api/query", methods=["GET"])
 def query():
     session_id = request.args.get("session_id", type=str)
-    query = request.args.get("query", type=str)
+    qtext = request.args.get("query", type=str)
 
-    if session_id is None or query is None:
+    if session_id is None or qtext is None:
         return Response("Missing session_id or query parameter", status=400)
-
     if session_id not in chat_sessions:
         return Response(f"Session {session_id} not found", status=404)
 
@@ -44,7 +48,7 @@ def query():
 
         def produce():
             try:
-                for out in session.query(query):
+                for out in session.query(qtext):
                     q.put(out)
             finally:
                 q.put(SENTINEL)
@@ -52,10 +56,12 @@ def query():
         t = threading.Thread(target=produce, daemon=True)
         t.start()
 
+        yield "retry: 15000\n\n"
         yield "event: start\ndata: {}\n\n"
+
         last_sent = time.time()
-        heartbeat_every = 15.0  # seconds
-        queue_poll = 1.0  # how often we wake to check queue / send heartbeat
+        heartbeat_every = 15.0   # seconds
+        queue_poll = 1.0         # seconds
 
         try:
             while True:
@@ -65,29 +71,33 @@ def query():
                     item = None
 
                 now = time.time()
+
                 if item is SENTINEL:
                     break
 
                 if item is None:
-                    # no data this tick; maybe send heartbeat
                     if now - last_sent >= heartbeat_every:
-                        # SSE comment line as heartbeat
+                        # SSE heartbeat comment (ignored by client, keeps connection warm)
                         yield ": keep-alive\n\n"
                         last_sent = now
                     continue
 
-                # normal data item
+                # Normal event payload
                 if isinstance(item, str):
                     event_type, content = item, ""
                 else:
                     event_type, content = item
+
                 payload = json.dumps({"type": event_type, "content": content})
                 yield f"data: {payload}\n\n"
                 last_sent = now
+
+        except (GeneratorExit, BrokenPipeError):
+            # Client disconnected; let the thread wind down
+            pass
         finally:
-            # best-effort join (thread is daemon; won't block shutdown)
             try:
-                t.join(timeout=0.1)
+                t.join(timeout=0.2)
             except Exception:
                 pass
 
@@ -99,7 +109,6 @@ def query():
         headers={
             "Content-Type": "text/event-stream; charset=utf-8",
             "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
     )
