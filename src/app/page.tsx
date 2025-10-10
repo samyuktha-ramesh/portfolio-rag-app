@@ -54,7 +54,6 @@ export default function Home() {
     };
   }, []);
 
-
   const sendMessage = () => {
     const q = input.trim();
     if (!q) return;

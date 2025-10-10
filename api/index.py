@@ -8,6 +8,7 @@ from flask import Flask, Response, request, stream_with_context
 from flask_cors import CORS
 from portfolio_rag.runtime.session import ChatSession
 
+
 app = Flask(__name__)
 CORS(app)
 
@@ -25,11 +26,6 @@ def start_session():
     chat_sessions[session_id] = ChatSession(session_id=session_id)
     return {"session_id": session_id}
 
-from flask import Response, request, stream_with_context
-import threading, time, json
-from queue import Queue, Empty
-
-SENTINEL = object()
 
 @app.route("/api/query", methods=["GET"])
 def query():
