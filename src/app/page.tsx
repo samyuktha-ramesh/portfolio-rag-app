@@ -18,13 +18,6 @@ export default function Home() {
 
   const currentBotIdRef = useRef<string | null>(null);
 
-  function pushBotMessage(type: string, content: string) {
-    const id = uuidv4();
-    const segment = { id, kind: mapTypeToKind(type), content, input: "", output: "" };
-    setMessages((prev) => [...prev, segment]);
-    currentBotIdRef.current = id;
-  }
-
   async function startSession() {
     const res = await fetch("/api/start_session", { method: "POST" });
     const data = await res.json();
@@ -215,7 +208,7 @@ export default function Home() {
         <div
           className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
         >
-          <div className={"mx-auto max-w-4xl flex items-center gap-2 py-2"}>
+          <div className={`mx-auto ${hasMessages ? "max-w-4xl" : "max-w-lg"} flex items-center gap-2 py-2`}>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
