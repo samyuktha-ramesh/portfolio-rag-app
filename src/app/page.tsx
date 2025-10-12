@@ -53,10 +53,9 @@ export default function Home() {
     if (!q || !sessionId) return;
     
     sourceRef.current?.close();
-
     
     const userMsg: Segment = { id: uuidv4(), kind: "user", content: q, input: "", output: "" };
-    const botId   = uuidv4();
+    const botId = uuidv4();
     const botMsg: Segment = { id: botId, kind: "bot",  content: "", input: "", output: "" };
     currentBotIdRef.current = botId;
 
@@ -79,29 +78,16 @@ export default function Home() {
           const next = [...prev];
           const i = next.findIndex((m) => m.id === currentBotIdRef.current);
 
-          // If there's no current segment, start a new one
-          if (i === -1) {
-            const newId = uuidv4();
-            currentBotIdRef.current = newId;
-            const reasoning = ["Reasoning...", "Thinking...", "Pondering..."][Math.floor(Math.random() * 3)];
-            const newSeg = {
-              id: newId,
-              kind: mapTypeToKind(type),
-              content: type === "on_reasoning" ? reasoning : chunk,
-              input: "",
-              output: "",
-            };
-            return [...prev, newSeg];
+          if (i > -1) {
+            const updated = updateSegment(type, next[i], chunk);
+            
+            if (updated) {
+              next[i] = updated;
+              return next;
+            }
           }
 
-          const updated = updateSegment(type, next[i], chunk);
-
-          if (updated) {
-            next[i] = updated;
-            return next;
-          }
-
-          // updateSegment returned null → start a new segment
+          // Create new segment
           const newId = uuidv4();
           currentBotIdRef.current = newId;
           const reasoning = ["Reasoning...", "Thinking...", "Pondering..."][Math.floor(Math.random() * 3)];
@@ -214,7 +200,7 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything..."
-              className="flex-1 bg-white"
+              className="flex-1 bg-white p-4 text-lg"
             />
             <Button
               onClick={sendMessage}
