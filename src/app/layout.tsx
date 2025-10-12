@@ -26,7 +26,16 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased mx-2 bg-background text-gray-800`}
-      >
+      >       
+        <header className="fixed top-0 left-0 w-full z-50 sm:p-4 mb-6 flex flex-row items-center">
+          <div className="flex items-center">
+            <div className="text-xl font-semibold">Portfolio Chat</div>
+            <img src="/portfolio_logo.png" alt="Portfolio Chat Logo" className="h-7 ml-2" />
+          </div>
+          <div className="flex-1" />
+          <img src="/eth_logo.svg" alt="ETH Zurich Logo" className="h-12 mx-4" />
+          <img src="/pwc_logo.svg" alt="PwC Logo" className="h-7 mr-4" />
+        </header> 
         {children}
       </body>
     </html>
