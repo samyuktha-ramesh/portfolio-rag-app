@@ -36,7 +36,7 @@ export default function CodePopup({ code, filename = "snippet.py" }: CodePopupPr
           <SyntaxHighlighter
             language="python"
             style={vscDarkPlus}
-            showLineNumbers
+            showLineNumbers={false}
             customStyle={{ borderRadius: "0.5rem", padding: "1rem" }}
           >
             {code}

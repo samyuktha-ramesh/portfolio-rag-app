@@ -18,13 +18,6 @@ export default function Home() {
 
   const currentBotIdRef = useRef<string | null>(null);
 
-  function pushBotMessage(type: string, content: string) {
-    const id = uuidv4();
-    const segment = { id, kind: mapTypeToKind(type), content, input: "", output: "" };
-    setMessages((prev) => [...prev, segment]);
-    currentBotIdRef.current = id;
-  }
-
   async function startSession() {
     const res = await fetch("/api/start_session", { method: "POST" });
     const data = await res.json();
@@ -60,10 +53,9 @@ export default function Home() {
     if (!q || !sessionId) return;
     
     sourceRef.current?.close();
-
     
     const userMsg: Segment = { id: uuidv4(), kind: "user", content: q, input: "", output: "" };
-    const botId   = uuidv4();
+    const botId = uuidv4();
     const botMsg: Segment = { id: botId, kind: "bot",  content: "", input: "", output: "" };
     currentBotIdRef.current = botId;
 
@@ -86,29 +78,16 @@ export default function Home() {
           const next = [...prev];
           const i = next.findIndex((m) => m.id === currentBotIdRef.current);
 
-          // If there's no current segment, start a new one
-          if (i === -1) {
-            const newId = uuidv4();
-            currentBotIdRef.current = newId;
-            const reasoning = ["Reasoning...", "Thinking..."][Math.floor(Math.random() * 2)];
-            const newSeg = {
-              id: newId,
-              kind: mapTypeToKind(type),
-              content: type === "on_reasoning" ? reasoning : chunk,
-              input: "",
-              output: "",
-            };
-            return [...prev, newSeg];
+          if (i > -1) {
+            const updated = updateSegment(type, next[i], chunk);
+            
+            if (updated) {
+              next[i] = updated;
+              return next;
+            }
           }
 
-          const updated = updateSegment(type, next[i], chunk);
-
-          if (updated) {
-            next[i] = updated;
-            return next;
-          }
-
-          // updateSegment returned null → start a new segment
+          // Create new segment
           const newId = uuidv4();
           currentBotIdRef.current = newId;
           const reasoning = ["Reasoning...", "Thinking..."][Math.floor(Math.random() * 2)];
@@ -215,13 +194,13 @@ export default function Home() {
         <div
           className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
         >
-          <div className={"mx-auto max-w-4xl flex items-center gap-2 py-2"}>
+          <div className={`mx-auto ${hasMessages ? "max-w-4xl" : "max-w-lg"} flex items-center gap-2 py-2`}>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything..."
-              className="flex-1 bg-white"
+              className="flex-1 bg-white p-4 text-lg"
             />
             <Button
               onClick={sendMessage}
