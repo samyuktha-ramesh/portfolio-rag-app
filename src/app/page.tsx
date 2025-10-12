@@ -57,49 +57,69 @@ export default function Home() {
 
   const sendMessage = () => {
     const q = input.trim();
-    if (!q) return;
+    if (!q || !sessionId) return;
+    
+    sourceRef.current?.close();
 
-    setMessages((prev) => [
-      ...prev,
-      { id: uuidv4(), kind: "user", content: q, input: "", output: "" },
-    ]);
+    
+    const userMsg: Segment = { id: uuidv4(), kind: "user", content: q, input: "", output: "" };
+    const botId   = uuidv4();
+    const botMsg: Segment = { id: botId, kind: "bot",  content: "", input: "", output: "" };
+    currentBotIdRef.current = botId;
+
+    setMessages((prev) => [...prev, userMsg, botMsg]);
     setInput("");
     setWaiting(true);
     scrollUp();
-    sourceRef.current?.close();
 
-    const params = new URLSearchParams({
-      query: q,
-      session_id: String(sessionId),
-    });
+    const params = new URLSearchParams({query: q, session_id: sessionId});
     const source = new EventSource(`/api/query?${params.toString()}`);
     sourceRef.current = source;
 
-    pushBotMessage("bot", "");    
-
-    source.onmessage = (event) => {
+    const handle = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         const chunk = data?.content ?? "";
+        const type = data?.type ?? "";
 
         setMessages((prev) => {
           const next = [...prev];
           const i = next.findIndex((m) => m.id === currentBotIdRef.current);
-          if (i == -1) return prev;
 
-          const type = data?.type ?? "bot";
-          const updatedSegment = updateSegment(type, next[i], chunk);
-          if (!updatedSegment) {
-            const reasoning_message = [
-              "Reasoning...",
-              "Thinking...",
-              "Pondering...",
-            ][Math.floor(Math.random() * 3)];
-            pushBotMessage(type, type === "on_reasoning" ? reasoning_message : chunk);
+          // If there's no current segment, start a new one
+          if (i === -1) {
+            const newId = uuidv4();
+            currentBotIdRef.current = newId;
+            const reasoning = ["Reasoning...", "Thinking...", "Pondering..."][Math.floor(Math.random() * 3)];
+            const newSeg = {
+              id: newId,
+              kind: mapTypeToKind(type),
+              content: type === "on_reasoning" ? reasoning : chunk,
+              input: "",
+              output: "",
+            };
+            return [...prev, newSeg];
           }
-          else {
-            next[i] = updatedSegment;
+
+          const updated = updateSegment(type, next[i], chunk);
+
+          if (updated) {
+            next[i] = updated;
+            return next;
           }
+
+          // updateSegment returned null → start a new segment
+          const newId = uuidv4();
+          currentBotIdRef.current = newId;
+          const reasoning = ["Reasoning...", "Thinking...", "Pondering..."][Math.floor(Math.random() * 3)];
+          const newSeg = {
+            id: newId,
+            kind: mapTypeToKind(type),
+            content: type === "on_reasoning" ? reasoning : chunk,
+            input: "",
+            output: "",
+          };
+          next.push(newSeg);
           return next;
         });
 
@@ -108,21 +128,17 @@ export default function Home() {
       }
     };
 
-    const endSource = () => {
-      setWaiting(false);
+    source.onmessage = handle;
+    source.addEventListener("end", () => endSource());
+    source.onerror = () => endSource();
+
+    function endSource() {
       source.close();
+      setWaiting(false);
       if (sourceRef.current === source) {
         sourceRef.current = null;
       }
-    };
-
-    source.addEventListener("end", () => {
-      endSource();
-    });
-
-    source.onerror = () => {
-      endSource();
-    };
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
