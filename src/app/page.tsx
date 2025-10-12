@@ -188,7 +188,7 @@ export default function Home() {
         {/* Messages */}
         {hasMessages && (
           <div
-            className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
+            className={`w-full h-full max-w-4xl mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
             ref={containerRef}
           >
             {messages.map((segment, i) => (
@@ -215,7 +215,7 @@ export default function Home() {
         <div
           className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
         >
-          <div className={"mx-auto max-w-lg flex items-center gap-2 py-2"}>
+          <div className={"mx-auto max-w-4xl flex items-center gap-2 py-2"}>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}

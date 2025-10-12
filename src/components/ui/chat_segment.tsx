@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 type SegmentKind = "user" | "bot" | "bot_tool";
 import { ChevronRight, ChevronDown } from "lucide-react";
+import CodePopup from "@/components/ui/codepopup";
 
 export type Segment = { id: string; kind: SegmentKind; content: string; input: string; output: string; };
 
@@ -65,6 +66,18 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
                     break;
             }
 
+            let code = null;
+            let tool_output = segment.output;
+            if (tool_output) {
+                const codeBlockRegex = /```(.*?)\n([\s\S]*?)```/;
+                const match = tool_output.match(codeBlockRegex);
+
+                if (match) {
+                    tool_output = tool_output.replace(codeBlockRegex, "").trim();
+                    code = match[2];
+                }
+            }
+
             return (
                 <div className="prose px-3 pt-2 text-s font-light text-gray-800">
                     <span>
@@ -92,8 +105,9 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
                                 div: ({ node, ...props }) => <span {...props} />, // safeguard for divs
                             }}
                             >
-                            {segment.output}
+                            {tool_output}
                             </ReactMarkdown>
+                            {code && (<CodePopup code={code} />)}
                             {children}
                         </div>
                     )}
