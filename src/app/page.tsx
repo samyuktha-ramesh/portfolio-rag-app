@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
 import { ChatSegment, updateSegment, mapTypeToKind, Segment } from "@/components/ui/chat_segment";
 import { BounceLoader } from "react-spinners";
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Home() {
   const [messages, setMessages] = useState<Segment[]>([]);
@@ -145,63 +146,82 @@ export default function Home() {
 
   return (
     <main>
-      {!hasMessages && (
-        <h1 className="text-4xl font-bold mb-12 mt-60 text-center">
-          Your portfolio insights, unlocked.
-        </h1>
-      )}
-
-      {/* Messages */}
-      {hasMessages && (
-        <div
-          className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
-          ref={containerRef}
-        >
-          {messages.map((segment, i) => (
-            <ChatSegment key={segment.id} segment={segment}>
-              {i === messages.length - 1 && (
-                <BounceLoader
-                  size={15}
-                  loading={waiting}
-                  color="#888"
-                  cssOverride={{
-                    display: "inline-block",
-                    marginLeft: "8px",
-                    verticalAlign: "middle",
-                    marginBottom: "3px",
-                  }}
-                />
-              )}
-            </ChatSegment>
-          ))}
+      {!sessionId && (
+        <div className="flex flex-col items-center justify-center space-y-4 mt-60">
+          <h1 className="text-4xl font-bold text-center mb-14">
+            Connecting to your portfolio...
+          </h1>
+          <div className="flex items-center space-x-4 w-full max-w-lg">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Input (sticky only when there are messages) */}
-      <div
-        className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
-      >
-        <div className={"mx-auto max-w-lg flex items-center gap-2 py-2"}>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask me anything..."
-            className="flex-1 bg-white"
-          />
-          <Button
-            onClick={sendMessage}
-            aria-label="Send"
-            disabled={waiting || !input.trim()}
+      {sessionId && (
+        <>
+        {!hasMessages && (
+          <h1 className="text-4xl font-bold mb-12 mt-60 text-center">
+            Your portfolio insights, unlocked.
+          </h1>
+        )}
+
+        {/* Messages */}
+        {hasMessages && (
+          <div
+            className={`w-full h-full max-w-lg mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
+            ref={containerRef}
           >
-            <PaperAirplaneIcon className="h-5 w-5 rotate-315 text-white" />
-          </Button>
+            {messages.map((segment, i) => (
+              <ChatSegment key={segment.id} segment={segment}>
+                {i === messages.length - 1 && (
+                  <BounceLoader
+                    size={15}
+                    loading={waiting}
+                    color="#888"
+                    cssOverride={{
+                      display: "inline-block",
+                      marginLeft: "8px",
+                      verticalAlign: "middle",
+                      marginBottom: "3px",
+                    }}
+                  />
+                )}
+              </ChatSegment>
+            ))}
+          </div>
+        )}
+
+        {/* Input (sticky only when there are messages) */}
+        <div
+          className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
+        >
+          <div className={"mx-auto max-w-lg flex items-center gap-2 py-2"}>
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything..."
+              className="flex-1 bg-white"
+            />
+            <Button
+              onClick={sendMessage}
+              aria-label="Send"
+              disabled={waiting || !input.trim()}
+            >
+              <PaperAirplaneIcon className="h-5 w-5 rotate-315 text-white" />
+            </Button>
+          </div>
+          <div className="text-xs text-gray-500 text-center mb-4">
+            Disclaimer: This chat provides general insights and does not
+            constitute financial advice.
+          </div>
         </div>
-        <div className="text-xs text-gray-500 text-center mb-4">
-          Disclaimer: This chat provides general insights and does not
-          constitute financial advice.
-        </div>
-      </div>
+        </>
+      )}
     </main>
   );
 }
