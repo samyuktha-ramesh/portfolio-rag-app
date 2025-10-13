@@ -212,8 +212,7 @@ export default function Home() {
           </div>
           <div className={`mx-auto text-xs ${hasMessages ? "max-w-4xl" : "max-w-lg"} text-gray-500 text-center mb-4`}>
             Disclaimer: This chat provides general insights and does not
-            constitute financial advice. For the sake of this demo, all data in 
-            this portfolio is fictional.
+            constitute financial advice. All data in this portfolio is fictional.
           </div>
         </div>
         </>
