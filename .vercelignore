@@ -1,0 +1,4 @@
+# Backend handled by render
+api/*
+pyproject.toml
+uv.lock
