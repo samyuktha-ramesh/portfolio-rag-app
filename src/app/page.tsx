@@ -90,7 +90,7 @@ export default function Home() {
           // Create new segment
           const newId = uuidv4();
           currentBotIdRef.current = newId;
-          const reasoning = ["Reasoning...", "Thinking...", "Pondering..."][Math.floor(Math.random() * 3)];
+          const reasoning = ["Reasoning...", "Thinking..."][Math.floor(Math.random() * 2)];
           const newSeg = {
             id: newId,
             kind: mapTypeToKind(type),
