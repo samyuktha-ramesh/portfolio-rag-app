@@ -34,7 +34,6 @@ export default function RootLayout({
           </div>
           <div className="flex-1" />
           <img src="/eth_logo.svg" alt="ETH Zurich Logo" className="h-12 mx-4" />
-          <img src="/pwc_logo.svg" alt="PwC Logo" className="h-7 mr-4" />
         </header> 
         {children}
       </body>

@@ -212,7 +212,8 @@ export default function Home() {
           </div>
           <div className="text-xs text-gray-500 text-center mb-4">
             Disclaimer: This chat provides general insights and does not
-            constitute financial advice.
+            constitute financial advice. For the sake of this demo, all data in 
+            this portfolio is fictional.
           </div>
         </div>
         </>
