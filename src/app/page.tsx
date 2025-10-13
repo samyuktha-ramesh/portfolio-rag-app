@@ -210,7 +210,7 @@ export default function Home() {
               <PaperAirplaneIcon className="h-5 w-5 rotate-315 text-white" />
             </Button>
           </div>
-          <div className="text-xs text-gray-500 text-center mb-4">
+          <div className={`mx-auto text-xs ${hasMessages ? "max-w-4xl" : "max-w-lg"} text-gray-500 text-center mb-4`}>
             Disclaimer: This chat provides general insights and does not
             constitute financial advice. For the sake of this demo, all data in 
             this portfolio is fictional.
