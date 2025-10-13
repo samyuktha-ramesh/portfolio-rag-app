@@ -1,7 +1,7 @@
 [project]
-name = "portfolio-chat"
+name = "portfolio-chat-app"
 version = "0.1.0"
-description = "Backend for portfolio-chat interface."
+description = "Web interface for portfolio-chat."
 authors = [
     { name = "Samyuktha Ramesh" },
     { name = "Alexander Brady" }
@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "flask>=3.1.2",
     "flask-cors>=6.0.1",
-    "portfolio-rag",
+    "portfolio-chat",
     "waitress>=3.0.2",
 ]
 
@@ -32,4 +32,4 @@ select = ["E", "F", "I", "UP", "B"]  # basics: style, flakes, isort, pyupgrade, 
 ignore = ["E501"]                    # let the formatter handle wrapping
 
 [tool.uv.sources]
-portfolio-rag = { git = "https://github.com/samyuktha-ramesh/pwc-portfolio-rag.git", rev = "main" }
+portfolio-chat = { git = "https://github.com/samyuktha-ramesh/portfolio-chat.git", rev = "main" }
