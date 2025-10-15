@@ -15,19 +15,20 @@ export default function Home() {
   const [waiting, setWaiting] = useState(false); // disable input while waiting for response
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sourceRef = useRef<EventSource | null>(null);
-  const topRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const objRef = useRef<HTMLDivElement | null>(null);
+  const userRef = useRef<HTMLDivElement | null>(null);
   const [gap, setGap] = useState(0);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
 
   const measure = useCallback(() => {
-    const t = topRef.current;
-    const b = bottomRef.current;
+    const t = containerRef.current;
+    const b = objRef.current;
     if (!t || !b) return;
     const tRect = t.getBoundingClientRect();
     const bRect = b.getBoundingClientRect();
-    const px = Math.max(0, Math.floor(tRect.top - bRect.bottom));
+    const px = Math.max(0, Math.floor(tRect.bottom - bRect.top) - 24);
     setGap(px);
+    console.log("gap", px);
   }, [setGap]);
 
   useEffect(() => {
@@ -38,9 +39,10 @@ export default function Home() {
 
   useLayoutEffect(() => {
     measure();
-  }, [messages, measure]);
+  }, [messages.length, measure]);
 
   const currentBotIdRef = useRef<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
 
   async function startSession() {
     const res = await fetch("/api/start_session", { method: "POST" });
@@ -78,7 +80,10 @@ export default function Home() {
     
     sourceRef.current?.close();
     
-    const userMsg: Segment = { id: uuidv4(), kind: "user", content: q, input: "", output: "" };
+    const userId = uuidv4();
+    const userMsg: Segment = { id: userId, kind: "user", content: q, input: "", output: "" };
+    currentUserIdRef.current = userId;
+
     const botId = uuidv4();
     const botMsg: Segment = { id: botId, kind: "bot",  content: "", input: "", output: "" };
     currentBotIdRef.current = botId;
@@ -159,13 +164,18 @@ export default function Home() {
   };
 
   const scrollUp = () => {
-    if (containerRef.current) {
-      const el = containerRef.current.lastElementChild as HTMLElement | null;
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
+    const container = containerRef.current;
+    const el = userRef.current;
+    if (!container || !el) return;
+
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    container.scrollTo({
+      top: container.scrollTop + (eRect.top - cRect.top), // align el to container top
+      behavior: "smooth",
+    });
   };
+
 
   const hasMessages = messages.length > 0;
 
@@ -197,7 +207,7 @@ export default function Home() {
         {/* Messages */}
         {hasMessages && (
           <div
-            className={`w-full h-full max-w-4xl mx-auto overflow-y-auto flex-1 p-24 mt-20`}
+            className={`w-full h-full max-w-4xl mx-auto overflow-y-auto flex-1 p-24 mt-10`}
             ref={containerRef}
           >
             {messages.map((segment, i) => (
@@ -215,9 +225,12 @@ export default function Home() {
                     }}
                   />
                 )}
+                {currentUserIdRef?.current === segment.id && (
+                  <div ref={userRef}></div>
+                )}
               </ChatSegment>
             ))}
-            <div ref={topRef} />
+            <div ref={objRef} />
             <div style={{ height: gap }} />
           </div>
         )}
@@ -225,7 +238,6 @@ export default function Home() {
         {/* Input (sticky only when there are messages) */}
         <div
           className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
-          ref={bottomRef}
         >
           <div className={`mx-auto ${hasMessages ? "max-w-4xl" : "max-w-lg"} flex items-center gap-2 py-2`}>
             <Input
