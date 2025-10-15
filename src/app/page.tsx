@@ -18,6 +18,7 @@ export default function Home() {
   const topRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [gap, setGap] = useState(0);
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
 
   const measure = useCallback(() => {
     const t = topRef.current;
@@ -92,14 +93,21 @@ export default function Home() {
     sourceRef.current = source;
 
     const handle = (event: MessageEvent) => {
-      try {
+      queueRef.current = queueRef.current.then(() => {
         const data = JSON.parse(event.data);
         const chunk = data?.content ?? "";
         const type = data?.type ?? "";
 
         setMessages((prev) => {
           const next = [...prev];
-          const i = next.findIndex((m) => m.id === currentBotIdRef.current);
+          let i = next.findIndex((m) => m.id === currentBotIdRef.current);
+
+          if (i === -1) {
+            i = next.length - 1; // fallback to last message
+            if (next[i].id) {
+              currentBotIdRef.current = next[i].id;
+            }
+          }
 
           if (i > -1) {
             const updated = updateSegment(type, next[i], chunk);
@@ -124,10 +132,9 @@ export default function Home() {
           next.push(newSeg);
           return next;
         });
-
-      } catch (error) {
+      }).catch((error) => {
         console.error("Error parsing event data:", error);
-      }
+      });
     };
 
     source.onmessage = handle;
