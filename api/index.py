@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from flask import Flask, Response, request, stream_with_context
 from flask_cors import CORS
-from portfolio_rag.runtime.session import ChatSession
+from portfolio_chat.runtime.session import ChatSession
 
 
 app = Flask(__name__)

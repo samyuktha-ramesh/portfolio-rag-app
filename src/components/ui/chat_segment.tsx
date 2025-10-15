@@ -41,28 +41,56 @@ function updateSegment(type: string, segment: Segment, chunk: string): Segment |
     }
 }
 
-function ChatSegment({ segment, children }: { segment: Segment; children: React.ReactNode }) {
+function ChatSegment({ segment, isLast, children }: { segment: Segment; isLast: boolean; children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
     switch (segment.kind) {
         case "user":
-            return <div className="prose px-3 py-2 w-fit bg-accent ml-auto rounded-sm"><span>{children}</span>{segment.content}</div>;
+            return <div className="prose px-3 py-2 w-fit bg-accent ml-auto mb-6 rounded-sm"><span>{children}</span>{segment.content}</div>;
         case "bot_tool":
             let tool_message = segment.content;
+            if (tool_message.includes("|")) {
+                const parts = tool_message.split("|");
+                if (parts.length === 2) {
+                    tool_message = isLast ? parts[0] : parts[1];
+                }
+            }
             switch (tool_message) {
                 case "top_headlines":
-                    tool_message = "Fetching top headlines...";
+                    if (!isLast) {
+                        tool_message = "Fetched top headlines";
+                    } else {
+                        tool_message = "Fetching top headlines...";
+                    }
                     break;
                 case "web_search":
-                    tool_message = "Performing web search for query";
+                    if (!isLast) {
+                        tool_message = "Searched the web for query";
+                    } else {
+                        tool_message = "Performing web search for query...";
+                    }
                     break;
                 case "query_portfolio_analyst":
-                    tool_message = "Querying portfolio analyst with";
+                    if (!isLast) {
+                        tool_message = "Queried portfolio analyst with";
+                    } else {
+                        tool_message = "Querying portfolio analyst with";
+                    }
                     break;
                 case "finance_qa":
-                    tool_message = "Querying finance Q&A agent with";
+                    if (!isLast) {
+                        tool_message = "Queried finance Q&A agent with";
+                    }
+                    else {
+                        tool_message = "Querying finance Q&A agent with";
+                    }
                     break;
                 case "stress_test":
-                    tool_message = "Running stress test on scenario:";
+                    if (!isLast) {
+                        tool_message = "Ran stress test on scenario:";
+                    }
+                    else {
+                        tool_message = "Running stress test on scenario:";
+                    }
                     break;
             }
 
@@ -79,18 +107,22 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
             }
 
             return (
-                <div className="prose px-3 pt-2 text-s font-light text-gray-800">
+                <>
+                <div className="prose px-3 w-fit py-2 border-2 border-blue-100 rounded-sm">
                     <span>
                         {tool_message}
                         {segment.input && segment.input !== "{}" && (
-                            <i>{` ${segment.input.startsWith('"') ? segment.input : `"${segment.input}"`}...`}</i>
+                            <span className="font-light">
+                                {` ${segment.input.startsWith('"') ? segment.input : `"${segment.input}"`}...`}
+                            </span>
                         )}
                         { 
                             segment.output && (
                                 <button
                                     onClick={() => setOpen(!open)}
-                                    className="inline-flex items-center text-sm ml-3 text-gray-800 mr-1"
+                                    className="inline-flex items-center text-xs ml-3 text-gray-500 mr-1"
                                 >
+                                    {open ? "Hide Details" : "View Details"}
                                     {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                 </button>
                             )
@@ -98,13 +130,8 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
                         {(!segment.output || !open) && children}
                     </span>
                     {segment.output && open && (
-                        <div className="prose px-3 pb-2 w-fit">
-                            <ReactMarkdown
-                            components={{
-                                p: ({ node, ...props }) => <span {...props} />, // paragraphs → inline span
-                                div: ({ node, ...props }) => <span {...props} />, // safeguard for divs
-                            }}
-                            >
+                        <div className="prose px-3 pb-2 w-fit text-sm">
+                            <ReactMarkdown>
                             {tool_output}
                             </ReactMarkdown>
                             {code && (<CodePopup code={code} />)}
@@ -112,18 +139,15 @@ function ChatSegment({ segment, children }: { segment: Segment; children: React.
                         </div>
                     )}
                 </div>
+                {!isLast && (<div className="w-1 h-4 ml-6 bg-blue-100" />)}
+                </>
             );
         default:
-            return (
-                <div className="prose px-3 pb-2 w-fit">
-                    <ReactMarkdown
-                    components={{
-                        p: ({ node, ...props }) => <span {...props} />, // paragraphs → inline span
-                        div: ({ node, ...props }) => <span {...props} />, // safeguard for divs
-                    }}
-                    >
+            return (segment.content.trim() === "" ? <></> :
+                <div className={`prose px-3 py-2 w-fit border-2 border-blue-100 rounded-sm mb-6`}>
+                    <ReactMarkdown>
                     {segment.content}
-                    </ReactMarkdown>
+                    </ReactMarkdown> 
                     {children}
                 </div>
             );

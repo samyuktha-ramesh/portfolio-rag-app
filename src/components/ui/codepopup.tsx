@@ -30,7 +30,6 @@ export default function CodePopup({ code, filename = "snippet.py" }: CodePopupPr
   };
 
   return (
-
         <div className="max-w-3xl">
           {/* Code Display */}
           <SyntaxHighlighter

@@ -1,7 +1,7 @@
 "use client";
 
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
@@ -15,6 +15,29 @@ export default function Home() {
   const [waiting, setWaiting] = useState(false); // disable input while waiting for response
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sourceRef = useRef<EventSource | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [gap, setGap] = useState(0);
+
+  const measure = useCallback(() => {
+    const t = topRef.current;
+    const b = bottomRef.current;
+    if (!t || !b) return;
+    const tRect = t.getBoundingClientRect();
+    const bRect = b.getBoundingClientRect();
+    const px = Math.max(0, Math.floor(tRect.top - bRect.bottom));
+    setGap(px);
+  }, [setGap]);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [messages, measure]);
 
   const currentBotIdRef = useRef<string | null>(null);
 
@@ -90,7 +113,7 @@ export default function Home() {
           // Create new segment
           const newId = uuidv4();
           currentBotIdRef.current = newId;
-          const reasoning = ["Reasoning...", "Thinking..."][Math.floor(Math.random() * 2)];
+          const reasoning = ["Reasoning...|Reasoned", "Thinking...|Thought"][Math.floor(Math.random() * 2)];
           const newSeg = {
             id: newId,
             kind: mapTypeToKind(type),
@@ -167,11 +190,11 @@ export default function Home() {
         {/* Messages */}
         {hasMessages && (
           <div
-            className={`w-full h-full max-w-4xl mx-auto overflow-y-auto space-y-2 flex-1 pb-24 mt-20`}
+            className={`w-full h-full max-w-4xl mx-auto overflow-y-auto flex-1 p-24 mt-20`}
             ref={containerRef}
           >
             {messages.map((segment, i) => (
-              <ChatSegment key={segment.id} segment={segment}>
+              <ChatSegment key={segment.id} isLast={i === messages.length - 1} segment={segment}>
                 {i === messages.length - 1 && (
                   <BounceLoader
                     size={15}
@@ -187,12 +210,15 @@ export default function Home() {
                 )}
               </ChatSegment>
             ))}
+            <div ref={topRef} />
+            <div style={{ height: gap }} />
           </div>
         )}
 
         {/* Input (sticky only when there are messages) */}
         <div
           className={`w-full z-10 bg-background ${hasMessages && "fixed bottom-0"}`}
+          ref={bottomRef}
         >
           <div className={`mx-auto ${hasMessages ? "max-w-4xl" : "max-w-lg"} flex items-center gap-2 py-2`}>
             <Input
